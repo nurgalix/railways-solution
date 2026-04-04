@@ -1,10 +1,10 @@
 # ── Stage 1: build ────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --silent
+RUN rm -f package-lock.json && npm install
 
 COPY . .
 
