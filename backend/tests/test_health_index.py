@@ -131,14 +131,8 @@ class TestCalculateHealthIndex:
         telemetry = {
             "speed": 80,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 115,  # Critical!
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 115,  # Critical!
         }
         result = calculate_health_index(telemetry)
         assert result.index < 95  # Should be lower than all-normal

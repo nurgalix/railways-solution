@@ -23,37 +23,13 @@ _RECOMMENDATIONS: dict[str, dict[str, str]] = {
         "warning": "Plan refueling stop at next station",
         "critical": "URGENT: Fuel critically low, stop at nearest point",
     },
-    "fuel_consumption": {
-        "warning": "Check fuel injection system, consumption above normal",
-        "critical": "Excessive fuel consumption detected — inspect engine",
+    "pressure": {
+        "warning": "Pressure below normal — monitor closely",
+        "critical": "CRITICAL: Pressure dangerously low, risk of failure",
     },
-    "oil_pressure": {
-        "warning": "Oil pressure below normal — monitor closely",
-        "critical": "CRITICAL: Oil pressure dangerously low, risk of engine seizure",
-    },
-    "brake_pressure": {
-        "warning": "Brake pressure decreasing — check brake lines",
-        "critical": "EMERGENCY: Brake failure risk, reduce speed immediately",
-    },
-    "coolant_temp": {
-        "warning": "Coolant overheating — reduce load, check radiator",
-        "critical": "CRITICAL: Engine overheating, stop engine if safe to do so",
-    },
-    "exhaust_temp": {
-        "warning": "Exhaust temperature elevated — reduce throttle",
-        "critical": "CRITICAL: Exhaust system overheating, risk of fire",
-    },
-    "bearing_temp": {
-        "warning": "Bearing temperature rising — slow down, inspect axle",
-        "critical": "CRITICAL: Bearing overheating, stop train for inspection",
-    },
-    "voltage": {
-        "warning": "Traction voltage sagging — check power supply",
-        "critical": "CRITICAL: Voltage drop, possible catenary/power issue",
-    },
-    "current": {
-        "warning": "Current draw exceeding normal — reduce traction",
-        "critical": "CRITICAL: Overcurrent detected, risk of electrical damage",
+    "temperature": {
+        "warning": "Overheating — reduce load, check system",
+        "critical": "CRITICAL: Severe overheating, stop engine if safe to do so",
     },
 }
 

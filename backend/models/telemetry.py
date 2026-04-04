@@ -36,21 +36,12 @@ class TelemetryReading(Base):
 
     # ── Fuel / Energy ─────────────────────────────────────────
     fuel_level: Mapped[float] = mapped_column(Float, nullable=False, default=100.0)
-    fuel_consumption: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     # ── Pressures ─────────────────────────────────────────────
-    oil_pressure: Mapped[float] = mapped_column(Float, nullable=False, default=4.0)
-    brake_pressure: Mapped[float] = mapped_column(Float, nullable=False, default=6.0)
+    pressure: Mapped[float] = mapped_column(Float, nullable=False, default=4.0)
 
     # ── Temperatures ──────────────────────────────────────────
-    coolant_temp: Mapped[float] = mapped_column(Float, nullable=False, default=80.0)
-    exhaust_temp: Mapped[float] = mapped_column(Float, nullable=False, default=350.0)
-    bearing_temp: Mapped[float] = mapped_column(Float, nullable=False, default=55.0)
-
-    # ── Electrical ────────────────────────────────────────────
-    voltage: Mapped[float] = mapped_column(Float, nullable=False, default=3000.0)
-    current: Mapped[float] = mapped_column(Float, nullable=False, default=800.0)
-    power: Mapped[float] = mapped_column(Float, nullable=False, default=2400.0)
+    temperature: Mapped[float] = mapped_column(Float, nullable=False, default=80.0)
 
     # ── Position ──────────────────────────────────────────────
     latitude: Mapped[float] = mapped_column(Float, nullable=True)

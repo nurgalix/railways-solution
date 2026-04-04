@@ -45,10 +45,7 @@ async def export_csv(
     # Header
     writer.writerow([
         "timestamp", "locomotive_id",
-        "speed", "fuel_level", "fuel_consumption",
-        "oil_pressure", "brake_pressure",
-        "coolant_temp", "exhaust_temp", "bearing_temp",
-        "voltage", "current", "power",
+        "speed", "fuel_level", "pressure", "temperature",
         "latitude", "longitude", "km_marker",
         "health_index", "health_category",
     ])
@@ -58,10 +55,7 @@ async def export_csv(
         writer.writerow([
             r.timestamp.isoformat() if r.timestamp else "",
             r.locomotive_id,
-            r.speed, r.fuel_level, r.fuel_consumption,
-            r.oil_pressure, r.brake_pressure,
-            r.coolant_temp, r.exhaust_temp, r.bearing_temp,
-            r.voltage, r.current, r.power,
+            r.speed, r.fuel_level, r.pressure, r.temperature,
             r.latitude, r.longitude, r.km_marker,
             r.health_index, r.health_category,
         ])

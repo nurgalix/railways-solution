@@ -21,15 +21,8 @@ class PositionData(BaseModel):
 class TelemetryData(BaseModel):
     speed: float = Field(0.0, ge=0, description="km/h")
     fuel_level: float = Field(100.0, ge=0, le=100, description="% remaining")
-    fuel_consumption: float = Field(0.0, ge=0, description="L/h")
-    oil_pressure: float = Field(4.0, ge=0, description="bar")
-    brake_pressure: float = Field(6.0, ge=0, description="bar")
-    coolant_temp: float = Field(80.0, description="°C")
-    exhaust_temp: float = Field(350.0, description="°C")
-    bearing_temp: float = Field(55.0, description="°C")
-    voltage: float = Field(3000.0, ge=0, description="V")
-    current: float = Field(800.0, ge=0, description="A")
-    power: float = Field(2400.0, ge=0, description="kW")
+    pressure: float = Field(4.0, ge=0, description="bar")
+    temperature: float = Field(80.0, description="C")
     position: PositionData = Field(default_factory=PositionData)
 
 
@@ -87,15 +80,8 @@ class TelemetryHistoryItem(BaseModel):
     timestamp: datetime
     speed: float
     fuel_level: float
-    fuel_consumption: float
-    oil_pressure: float
-    brake_pressure: float
-    coolant_temp: float
-    exhaust_temp: float
-    bearing_temp: float
-    voltage: float
-    current: float
-    power: float
+    pressure: float
+    temperature: float
     health_index: float | None = None
     health_category: str | None = None
     latitude: float | None = None

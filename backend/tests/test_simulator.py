@@ -27,14 +27,8 @@ class TestAlertEngine:
         telemetry = {
             "speed": 80,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         alerts = engine.check(telemetry)
         assert len(alerts) == 0
@@ -45,14 +39,8 @@ class TestAlertEngine:
         telemetry = {
             "speed": 130,  # Warning range [120, 140]
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         alerts = engine.check(telemetry)
         speed_alerts = [a for a in alerts if a["parameter"] == "speed"]
@@ -65,17 +53,11 @@ class TestAlertEngine:
         telemetry = {
             "speed": 80,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 115,  # Critical range [105, 130]
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 115,  # Critical range [105, 130]
         }
         alerts = engine.check(telemetry)
-        temp_alerts = [a for a in alerts if a["parameter"] == "coolant_temp"]
+        temp_alerts = [a for a in alerts if a["parameter"] == "temperature"]
         assert len(temp_alerts) == 1
         assert temp_alerts[0]["severity"] == "critical"
 
@@ -85,17 +67,11 @@ class TestAlertEngine:
         telemetry = {
             "speed": 80,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 100,  # Warning range
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 100,  # Warning range
         }
         alerts = engine.check(telemetry)
-        temp_alerts = [a for a in alerts if a["parameter"] == "coolant_temp"]
+        temp_alerts = [a for a in alerts if a["parameter"] == "temperature"]
         if temp_alerts:
             assert temp_alerts[0]["recommendation"] is not None
             assert len(temp_alerts[0]["recommendation"]) > 0
@@ -106,14 +82,8 @@ class TestAlertEngine:
         telemetry = {
             "speed": 130,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         alerts1 = engine.check(telemetry)
         alerts2 = engine.check(telemetry)
@@ -130,14 +100,8 @@ class TestAlertEngine:
         telemetry = {
             "speed": 80,
             "fuel_level": 10,  # Below critical range [0, 15]
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         alerts = engine.check(telemetry)
         fuel_alerts = [a for a in alerts if a["parameter"] == "fuel_level"]

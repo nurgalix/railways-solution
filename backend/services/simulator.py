@@ -137,41 +137,21 @@ class LocomotiveSimulator:
 
         self._fuel_level = max(0, self._fuel_level - fuel_consumption * 0.001)
 
-        oil_pressure = 4.5 + noise(0.1) - (speed / 300)
-        brake_pressure = 6.0 + noise(0.1)
-        coolant_temp = 75 + speed * 0.15 + noise(0.5)
-        exhaust_temp = 280 + speed * 1.5 + noise(3.0)
-        bearing_temp = 45 + speed * 0.2 + noise(0.3)
-        voltage = 3100 - speed * 0.5 + noise(5.0)
-        current = 200 + speed * 6.5 + noise(3.0)
-        power = max(0, voltage * current / 1000)
+        pressure = 4.5 + noise(0.1) - (speed / 300)
+        temperature = 75 + speed * 0.15 + noise(0.5)
 
         # Apply faults
-        if "coolant_temp" in self._fault_active:
-            coolant_temp += random.uniform(15, 30)
-        if "oil_pressure" in self._fault_active:
-            oil_pressure -= random.uniform(1.5, 2.5)
-            oil_pressure = max(0.5, oil_pressure)
-        if "voltage" in self._fault_active:
-            voltage -= random.uniform(400, 700)
-        if "bearing_temp" in self._fault_active:
-            bearing_temp += random.uniform(20, 40)
-        if "brake_pressure" in self._fault_active:
-            brake_pressure -= random.uniform(2.0, 3.0)
-            brake_pressure = max(1.0, brake_pressure)
+        if "temperature" in self._fault_active:
+            temperature += random.uniform(15, 30)
+        if "pressure" in self._fault_active:
+            pressure -= random.uniform(1.5, 2.5)
+            pressure = max(0.5, pressure)
 
         telemetry_dict = {
             "speed": round(speed, 1),
             "fuel_level": round(self._fuel_level, 1),
-            "fuel_consumption": round(fuel_consumption, 1),
-            "oil_pressure": round(oil_pressure, 2),
-            "brake_pressure": round(brake_pressure, 2),
-            "coolant_temp": round(coolant_temp, 1),
-            "exhaust_temp": round(exhaust_temp, 1),
-            "bearing_temp": round(bearing_temp, 1),
-            "voltage": round(voltage, 1),
-            "current": round(current, 1),
-            "power": round(power, 1),
+            "pressure": round(pressure, 2),
+            "temperature": round(temperature, 1),
         }
 
         # Calculate health index
@@ -285,10 +265,7 @@ class LocomotiveSimulator:
             self._fault_active[p] -= 1
 
         # Random injection (1% chance per tick per fault type)
-        fault_candidates = [
-            "coolant_temp", "oil_pressure", "voltage",
-            "bearing_temp", "brake_pressure",
-        ]
+        fault_candidates = ["temperature", "pressure"]
         for fc in fault_candidates:
             if fc not in self._fault_active and random.random() < 0.01:
                 duration = random.randint(10, 60)
@@ -309,15 +286,8 @@ class LocomotiveSimulator:
                     locomotive_id=frame.locomotive_id,
                     speed=frame.data.speed,
                     fuel_level=frame.data.fuel_level,
-                    fuel_consumption=frame.data.fuel_consumption,
-                    oil_pressure=frame.data.oil_pressure,
-                    brake_pressure=frame.data.brake_pressure,
-                    coolant_temp=frame.data.coolant_temp,
-                    exhaust_temp=frame.data.exhaust_temp,
-                    bearing_temp=frame.data.bearing_temp,
-                    voltage=frame.data.voltage,
-                    current=frame.data.current,
-                    power=frame.data.power,
+                    pressure=frame.data.pressure,
+                    temperature=frame.data.temperature,
                     latitude=frame.data.position.lat,
                     longitude=frame.data.position.lng,
                     km_marker=frame.data.position.km_marker,

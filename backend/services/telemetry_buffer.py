@@ -18,10 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Smoothable numeric fields
 _SMOOTHABLE = [
-    "speed", "fuel_level", "fuel_consumption",
-    "oil_pressure", "brake_pressure",
-    "coolant_temp", "exhaust_temp", "bearing_temp",
-    "voltage", "current", "power",
+    "speed", "fuel_level", "pressure", "temperature"
 ]
 
 
