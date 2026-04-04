@@ -1,0 +1,755 @@
+/* =================================================================
+   LOCOMOTIVE DIGITAL TWIN — MASTER STYLESHEET
+   One file, clearly sectioned. Edit theme variables at the top.
+   =================================================================
+
+   TABLE OF CONTENTS
+   1.  Theme Variables (dark / light)
+   2.  Reset & Base
+   3.  Typography
+   4.  App Layout
+   5.  TopBar
+   6.  Nav Tabs
+   7.  Card (shared panel shell)
+   8.  Status Colors & Badges
+   9.  Progress Bars
+   10. Health Index Card
+   11. Speed Panel
+   12. Fuel & Energy Panel
+   13. Pressure / Temperature Panel
+   14. Electrical Panel
+   15. Alerts Panel
+   16. Trends Panel
+   17. Route Map Panel
+   18. Dashboard View (3-column grid)
+   19. Full-page Views (Alerts, Trends, Route, Settings)
+   20. Utilities
+   21. Animations
+   ================================================================= */
+
+
+/* ─── 1. THEME VARIABLES ─────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  --bg:             #070c18;
+  --bg-raised:      #0d1424;
+  --surface:        #111827;
+  --surface-2:      #1a2235;
+  --border:         #1e2d45;
+  --border-soft:    #162030;
+
+  --text:           #e2e8f0;
+  --text-sub:       #94a3b8;
+  --text-muted:     #64748b;
+
+  --accent:         #3b82f6;
+  --accent-dim:     rgba(59, 130, 246, 0.15);
+
+  --ok:             #10b981;
+  --ok-dim:         rgba(16, 185, 129, 0.12);
+  --warn:           #f59e0b;
+  --warn-dim:       rgba(245, 158, 11, 0.12);
+  --crit:           #ef4444;
+  --crit-dim:       rgba(239, 68, 68, 0.12);
+
+  --chart-1:        #3b82f6;
+  --chart-2:        #10b981;
+  --chart-3:        #f59e0b;
+  --chart-4:        #8b5cf6;
+  --chart-5:        #ec4899;
+
+  --topbar-bg:      rgba(7, 12, 24, 0.96);
+  --topbar-border:  #1e2d45;
+  --shadow:         0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] {
+  --bg:             #f0f4f8;
+  --bg-raised:      #e2e8f0;
+  --surface:        #ffffff;
+  --surface-2:      #f8fafc;
+  --border:         #e2e8f0;
+  --border-soft:    #f1f5f9;
+
+  --text:           #0f172a;
+  --text-sub:       #475569;
+  --text-muted:     #94a3b8;
+
+  --accent:         #2563eb;
+  --accent-dim:     rgba(37, 99, 235, 0.1);
+
+  --ok:             #059669;
+  --ok-dim:         rgba(5, 150, 105, 0.08);
+  --warn:           #d97706;
+  --warn-dim:       rgba(217, 119, 6, 0.08);
+  --crit:           #dc2626;
+  --crit-dim:       rgba(220, 38, 38, 0.08);
+
+  --chart-1:        #2563eb;
+  --chart-2:        #059669;
+  --chart-3:        #d97706;
+  --chart-4:        #7c3aed;
+  --chart-5:        #db2777;
+
+  --topbar-bg:      rgba(255, 255, 255, 0.96);
+  --topbar-border:  #e2e8f0;
+  --shadow:         0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+
+/* ─── 2. RESET & BASE ────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-raised); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+
+/* ─── 3. TYPOGRAPHY ──────────────────────────────────────────────── */
+
+.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.text-xs   { font-size: 0.7rem; }
+.text-sm   { font-size: 0.82rem; }
+.text-base { font-size: 1rem; }
+
+.text-muted { color: var(--text-muted); }
+.text-sub   { color: var(--text-sub); }
+
+.label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+
+/* ─── 4. APP LAYOUT ──────────────────────────────────────────────── */
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+
+/* ─── 5. TOPBAR ──────────────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.25rem;
+  height: 52px;
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--topbar-border);
+  backdrop-filter: blur(12px);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.topbar-brand-icon { font-size: 1.4rem; line-height: 1; }
+
+.topbar-brand-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.topbar-brand-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-sub);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot--connected    { background: var(--ok);    animation: blink 2s ease-in-out infinite; }
+.status-dot--mock         { background: var(--warn);  animation: blink 1.5s ease-in-out infinite; }
+.status-dot--connecting   { background: var(--accent); animation: blink 1s ease-in-out infinite; }
+.status-dot--disconnected { background: var(--crit); }
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.topbar-clock {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  letter-spacing: 0.04em;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border);
+}
+
+.mock-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  background: var(--warn-dim);
+  color: var(--warn);
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+
+/* ─── 6. NAV TABS ────────────────────────────────────────────────── */
+
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  height: 100%;
+}
+
+.nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.7rem;
+  height: 52px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.nav-tab:hover        { color: var(--text); }
+.nav-tab.router-link-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.nav-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: var(--crit-dim);
+  color: var(--crit);
+}
+
+
+/* ─── 7. CARD ────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.card-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.65rem 0;
+}
+
+
+/* ─── 8. STATUS COLORS & BADGES ──────────────────────────────────── */
+
+.c-ok   { color: var(--ok); }
+.c-warn { color: var(--warn); }
+.c-crit { color: var(--crit); }
+.c-accent { color: var(--accent); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.badge-ok   { background: var(--ok-dim);   color: var(--ok); }
+.badge-warn { background: var(--warn-dim); color: var(--warn); }
+.badge-crit { background: var(--crit-dim); color: var(--crit); }
+
+
+/* ─── 9. PROGRESS BARS ───────────────────────────────────────────── */
+
+.bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 0.3rem;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+.bar-fill--ok   { background: var(--ok); }
+.bar-fill--warn { background: var(--warn); }
+.bar-fill--crit { background: var(--crit); }
+.bar-fill--accent { background: var(--accent); }
+
+
+/* ─── 10. HEALTH INDEX CARD ──────────────────────────────────────── */
+
+.health-card--ok   { border-color: var(--ok);   box-shadow: 0 0 18px var(--ok-dim); }
+.health-card--warn { border-color: var(--warn);  box-shadow: 0 0 18px var(--warn-dim); }
+.health-card--crit { border-color: var(--crit);  box-shadow: 0 0 18px var(--crit-dim); }
+
+.health-index-value {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+  font-family: 'JetBrains Mono', monospace;
+  transition: color 0.4s;
+}
+
+.health-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+}
+
+.health-factor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.health-factor-name  { font-size: 0.7rem; color: var(--text-sub); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.health-factor-bar   { flex: 1; }
+.health-factor-score { font-size: 0.68rem; font-weight: 700; font-family: monospace; width: 26px; text-align: right; }
+
+
+/* ─── 11. SPEED PANEL ────────────────────────────────────────────── */
+
+.speed-big {
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-family: 'JetBrains Mono', monospace;
+  transition: color 0.3s;
+}
+
+.speed-unit {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.speed-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-sub);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+
+/* ─── 12. FUEL & ENERGY PANEL ────────────────────────────────────── */
+
+.metric-row {
+  margin-bottom: 0.6rem;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.metric-name  { font-size: 0.72rem; color: var(--text-sub); }
+.metric-value { font-size: 1rem; font-weight: 700; transition: color 0.3s; }
+
+.metric-sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.metric-sub b { color: var(--text-sub); }
+
+
+/* ─── 13. PRESSURE / TEMPERATURE PANEL ──────────────────────────── */
+
+.sensor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.sensor-item {}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.sensor-name  { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.sensor-value { font-size: 0.92rem; font-weight: 700; transition: color 0.3s; }
+
+.sensor-range-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+
+/* ─── 14. ELECTRICAL PANEL ───────────────────────────────────────── */
+
+.elec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.elec-name  { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.elec-value { font-size: 1.4rem; font-weight: 700; line-height: 1.2; }
+.elec-unit  { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; }
+
+.power-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0.6rem 0;
+}
+
+.power-block { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+.power-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.power-value { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+
+
+/* ─── 15. ALERTS PANEL ───────────────────────────────────────────── */
+
+.alerts-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  color: var(--ok);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.alert-list { display: flex; flex-direction: column; gap: 0.45rem; }
+
+.alert-item {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.7rem;
+  border-radius: 7px;
+  border-left: 3px solid transparent;
+}
+
+.alert-item--critical { background: var(--crit-dim); border-left-color: var(--crit); }
+.alert-item--warning  { background: var(--warn-dim); border-left-color: var(--warn); }
+.alert-item--info     { background: var(--accent-dim); border-left-color: var(--accent); }
+
+.alert-icon { font-size: 0.9rem; flex-shrink: 0; line-height: 1.4; }
+.alert-icon--critical { color: var(--crit); }
+.alert-icon--warning  { color: var(--warn); }
+.alert-icon--info     { color: var(--accent); }
+
+.alert-body    { flex: 1; min-width: 0; }
+.alert-title   { font-size: 0.76rem; font-weight: 700; color: var(--text); }
+.alert-message { font-size: 0.68rem; color: var(--text-sub); margin-top: 0.1rem; line-height: 1.4; }
+.alert-rec     { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.2rem; font-style: italic; }
+.alert-rec-arrow { color: var(--accent); font-style: normal; font-weight: 600; }
+.alert-time    { font-size: 0.58rem; color: var(--text-muted); margin-top: 0.2rem; font-family: monospace; }
+
+
+/* ─── 16. TRENDS PANEL ───────────────────────────────────────────── */
+
+.trends-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.trends-controls { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+
+.chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 200px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.chart-placeholder-icon { font-size: 1.8rem; opacity: 0.4; }
+
+.chart-area { width: 100%; }
+
+
+/* ─── 17. ROUTE MAP PANEL ────────────────────────────────────────── */
+
+.route-map-wrap {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+  background: var(--bg-raised);
+}
+
+.station-list { display: flex; flex-direction: column; gap: 0.28rem; }
+
+.station-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.station-row.is-passed  { color: var(--text-sub); }
+.station-row.is-current { color: var(--text); font-weight: 600; }
+
+.station-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
+.station-dot.is-passed { background: var(--accent); border-color: var(--accent); }
+
+.station-km   { font-family: monospace; font-size: 0.62rem; margin-left: auto; }
+
+.here-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.08rem 0.3rem;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 4px;
+}
+
+
+/* ─── 18. DASHBOARD VIEW (3-column) ──────────────────────────────── */
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.dash-col { display: flex; flex-direction: column; gap: 0.75rem; }
+
+@media (max-width: 1300px) {
+  .dashboard-layout { grid-template-columns: 250px 1fr 250px; }
+}
+
+@media (max-width: 1000px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "center  right"
+      "left    right";
+  }
+  .dash-col-left   { grid-area: left; }
+  .dash-col-center { grid-area: center; }
+  .dash-col-right  { grid-area: right; }
+}
+
+@media (max-width: 680px) {
+  .dashboard-layout { grid-template-columns: 1fr; grid-template-areas: none; }
+}
+
+
+/* ─── 19. FULL-PAGE VIEWS ────────────────────────────────────────── */
+
+.page-header {
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.page-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.page-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.page-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.page-grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 768px) {
+  .page-grid-2, .page-grid-3 { grid-template-columns: 1fr; }
+}
+
+
+/* ─── 20. UTILITIES ──────────────────────────────────────────────── */
+
+.flex            { display: flex; }
+.flex-col        { flex-direction: column; }
+.items-center    { align-items: center; }
+.items-baseline  { align-items: baseline; }
+.justify-between { justify-content: space-between; }
+.justify-center  { justify-content: center; }
+.gap-1  { gap: 0.25rem; }
+.gap-2  { gap: 0.5rem; }
+.gap-3  { gap: 0.75rem; }
+.mt-1   { margin-top: 0.25rem; }
+.mt-2   { margin-top: 0.5rem; }
+.mt-3   { margin-top: 0.75rem; }
+.w-full { width: 100%; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Pill buttons (topbar controls, window selectors) */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-sub);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.pill-btn:hover         { background: var(--border); color: var(--text); }
+.pill-btn.is-active     { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+.pill-btn.is-danger     { background: var(--warn-dim);   color: var(--warn);   border-color: var(--warn); }
+.pill-btn--icon         { padding: 0.25rem 0.45rem; }
+
+
+/* ─── 21. ANIMATIONS ─────────────────────────────────────────────── */
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes trainPulse {
+  0%, 100% { r: 8; opacity: 0.25; }
+  50%       { r: 12; opacity: 0.1; }
+}
+
+.anim-fade-in { animation: fadeInUp 0.25s ease-out both; }
+
+/* Alert list enter/leave */
+.alert-anim-enter-active { transition: all 0.25s ease; }
+.alert-anim-leave-active { transition: all 0.2s ease; }
+.alert-anim-enter-from   { opacity: 0; transform: translateY(-5px); }
+.alert-anim-leave-to     { opacity: 0; transform: translateX(8px); }
