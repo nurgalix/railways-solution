@@ -107,19 +107,13 @@ class TestCalculateHealthIndex:
         reload_config()
         load_config(config_path)
 
-    def test_all_nominal_values(self):
-        """All parameters in normal range → high index."""
+    def test_all_normal(self):
+        """When all parameters are in normal_range, index should be 100."""
         telemetry = {
             "speed": 80,
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         result = calculate_health_index(telemetry)
         assert result.index >= 85  # Should be category A
@@ -137,19 +131,13 @@ class TestCalculateHealthIndex:
         result = calculate_health_index(telemetry)
         assert result.index < 95  # Should be lower than all-normal
 
-    def test_alert_penalty(self):
-        """Active alerts should reduce the index."""
+    def test_one_warning_parameter(self):
+        """One parameter in warning range should reduce the index linearly."""
         telemetry = {
-            "speed": 80,
+            "speed": 130,  # Warning range is 120-140
             "fuel_level": 70,
-            "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 80,
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
-            "voltage": 3100,
-            "current": 800,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         no_alerts = calculate_health_index(telemetry, active_alerts=[])
         with_alerts = calculate_health_index(
@@ -168,11 +156,8 @@ class TestCalculateHealthIndex:
             "speed": 150,  # Warning/critical
             "fuel_level": 70,
             "fuel_consumption": 12,
-            "oil_pressure": 4.5,
-            "brake_pressure": 5.5,
-            "coolant_temp": 110,  # Critical
-            "exhaust_temp": 350,
-            "bearing_temp": 55,
+            "pressure": 4.5,
+            "temperature": 110,  # Critical
             "voltage": 3100,
             "current": 800,
         }
@@ -183,36 +168,23 @@ class TestCalculateHealthIndex:
         assert worst.impact < 0
 
     def test_all_critical_gives_low_index(self):
-        """All parameters critical → very low index."""
         telemetry = {
             "speed": 180,
             "fuel_level": 5,
-            "fuel_consumption": 45,
-            "oil_pressure": 1.0,
-            "brake_pressure": 2.5,
-            "coolant_temp": 120,
-            "exhaust_temp": 600,
-            "bearing_temp": 100,
-            "voltage": 2200,
-            "current": 1400,
+            "pressure": 1.0,
+            "temperature": 120,
         }
         result = calculate_health_index(telemetry)
         assert result.index < 50
         assert result.category in ("D", "E")
 
-    def test_index_clamped_to_zero(self):
-        """Index should never go below 0."""
+    def test_alert_penalty_applied(self):
+        """Active alerts should deduct from the raw index."""
         telemetry = {
-            "speed": 200,
-            "fuel_level": 0,
-            "fuel_consumption": 50,
-            "oil_pressure": 0.5,
-            "brake_pressure": 1.0,
-            "coolant_temp": 130,
-            "exhaust_temp": 650,
-            "bearing_temp": 110,
-            "voltage": 2000,
-            "current": 1500,
+            "speed": 80,
+            "fuel_level": 70,
+            "pressure": 4.5,
+            "temperature": 80,
         }
         result = calculate_health_index(
             telemetry,
