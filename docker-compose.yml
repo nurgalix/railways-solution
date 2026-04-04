@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: railways_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: railways
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ─────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: railways_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/railways"
+      DATABASE_URL_SYNC: "postgresql://postgres:postgres@db:5432/railways"
+      SECRET_KEY: "${SECRET_KEY:-super-secret-change-me-in-production}"
+      SIMULATOR_ENABLED: "true"
+      SIMULATOR_INTERVAL_MS: "1000"
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost:8080"]'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/health_config.yaml:/app/health_config.yaml
+
+volumes:
+  pgdata:
