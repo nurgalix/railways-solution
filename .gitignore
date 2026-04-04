@@ -1,0 +1,23 @@
+# Python / Backend
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+backend/.venv/
+env/
+.env
+
+# Frontend / Node
+node_modules/
+dist/
+build/
+.npm/
+.eslintcache
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
