@@ -5,12 +5,12 @@
     <!-- Main value -->
     <div class="flex items-baseline gap-3">
       <span class="health-index-value" :style="{ color: catColor }">
-        {{ health.index }}
+        {{ Math.round(health.index) }}
       </span>
-      <span class="badge" :class="badgeClass">{{ store.category.label }}</span>
+      <span class="badge" :class="badgeClass">{{ health.label }}</span>
     </div>
 
-    <!-- Simple bar representing overall score -->
+    <!-- Progress bar -->
     <div class="bar-track" style="margin-top:0.6rem; height:8px">
       <div class="bar-fill" :style="{ width: health.index + '%', background: catColor }"></div>
     </div>
@@ -18,16 +18,29 @@
       <span>0</span><span>50</span><span>100</span>
     </div>
 
+    <!-- Category label row -->
+    <div class="health-status-row">
+      <span class="label">Категория</span>
+      <span class="font-mono" style="font-weight:700" :style="{ color: catColor }">
+        {{ health.category }}
+      </span>
+    </div>
+
     <div class="card-divider"></div>
 
-    <!-- Top factors -->
+    <!-- Top factors from backend -->
     <div class="label" style="margin-bottom:0.5rem">Факторы влияния</div>
-    <div v-if="!health.factors.length" class="text-sm text-muted">Ожидание данных…</div>
+
+    <div v-if="!health.top_factors.length" class="text-sm text-muted">
+      Ожидание данных…
+    </div>
+
     <div
-      v-for="f in health.factors.slice(0, 5)" :key="f.key"
+      v-for="f in health.top_factors.slice(0, 5)"
+      :key="f.parameter"
       class="health-factor-row"
     >
-      <span class="health-factor-name">{{ f.label }}</span>
+      <span class="health-factor-name">{{ f.parameter }}</span>
       <div class="health-factor-bar">
         <div class="bar-track">
           <div class="bar-fill" :style="{ width: f.score + '%', background: scoreColor(f.score) }"></div>
@@ -36,11 +49,6 @@
       <span class="health-factor-score" :style="{ color: scoreColor(f.score) }">
         {{ Math.round(f.score) }}
       </span>
-    </div>
-
-    <!-- Alert penalty -->
-    <div v-if="health.alertPenalty > 0" style="margin-top:0.5rem; text-align:right">
-      <span class="badge badge-crit">−{{ health.alertPenalty }} алерты</span>
     </div>
   </div>
 </template>
@@ -56,19 +64,19 @@ const catColor = computed(() => ({
   normal:   'var(--ok)',
   warning:  'var(--warn)',
   critical: 'var(--crit)',
-}[store.category.key] || 'var(--text)'));
+}[store.categoryKey] || 'var(--text)'));
 
 const borderClass = computed(() => ({
   normal:   'health-card--ok',
   warning:  'health-card--warn',
   critical: 'health-card--crit',
-}[store.category.key] || ''));
+}[store.categoryKey] || ''));
 
 const badgeClass = computed(() => ({
   normal:   'badge-ok',
   warning:  'badge-warn',
   critical: 'badge-crit',
-}[store.category.key] || 'badge-ok'));
+}[store.categoryKey] || 'badge-ok'));
 
 function scoreColor(s) {
   if (s >= 75) return 'var(--ok)';

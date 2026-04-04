@@ -2,27 +2,20 @@
   <div class="card">
     <div class="card-title">Маршрут</div>
 
-    <!-- Map placeholder — implement with Leaflet or SVG from _reference -->
-    <div class="route-map-wrap" style="height:120px; display:flex; align-items:center; justify-content:center">
-      <span style="font-size:0.72rem; color:var(--text-muted)">
-        Карта — см. _reference/cabin/RouteMapPanel.vue
-      </span>
-    </div>
-
-    <!-- Progress bar along route -->
-    <div style="margin:0.5rem 0 0.25rem">
+    <!-- Route progress bar -->
+    <div style="margin-bottom:0.5rem">
       <div class="bar-track" style="height:6px">
         <div class="bar-fill bar-fill--accent" :style="{ width: routeProgress + '%' }"></div>
       </div>
       <div class="flex justify-between text-xs text-muted" style="margin-top:0.2rem">
         <span>Алматы</span>
-        <span class="font-mono">{{ posKm }} / {{ routeMaxKm }} км</span>
+        <span class="font-mono">{{ posKm }} / {{ ROUTE_MAX_KM }} км</span>
         <span>Тараз</span>
       </div>
     </div>
 
     <!-- Station list -->
-    <div class="station-list" style="margin-top:0.5rem">
+    <div class="station-list">
       <div
         v-for="s in stations" :key="s.name"
         class="station-row"
@@ -40,14 +33,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
-import { ROUTE_WAYPOINTS, ROUTE_MAX_KM } from '@/services/mockTelemetry.js';
+import { ROUTE_WAYPOINTS, ROUTE_MAX_KM } from '@/constants/route.js';
 
-const store      = useTelemetryStore();
-const posKm      = computed(() => store.current?.position?.km ?? 0);
-const routeMaxKm = ROUTE_MAX_KM;
+const store  = useTelemetryStore();
+// Backend sends position.km_marker
+const posKm  = computed(() => Math.round(store.data?.position?.km_marker ?? 0));
 
 const routeProgress = computed(() =>
-  Math.min(100, (posKm.value / routeMaxKm) * 100)
+  Math.min(100, (posKm.value / ROUTE_MAX_KM) * 100)
 );
 
 const stations = computed(() =>

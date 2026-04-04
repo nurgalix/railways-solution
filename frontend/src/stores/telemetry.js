@@ -1,122 +1,88 @@
+/**
+ * Telemetry store — holds live and historical frames from the backend.
+ *
+ * Backend WS frame shape (TelemetryFrame):
+ * {
+ *   type:           "telemetry",
+ *   timestamp:      "2024-01-01T12:00:00Z",
+ *   locomotive_id:  "LOC-001",
+ *   data: {
+ *     speed:       87.5,          // km/h
+ *     fuel_level:  68.2,          // %
+ *     pressure:    5.01,          // bar (combined)
+ *     temperature: 81.3,          // °C (combined)
+ *     position:    { lat, lng, km_marker }
+ *   },
+ *   health: {
+ *     index:       82.5,          // 0–100
+ *     category:    "B",           // A–E
+ *     label:       "Attention",
+ *     top_factors: [ { parameter, score, weight, impact, status } ]
+ *   },
+ *   alerts: [ { id, severity, code, message, parameter, value, threshold, recommendation, acknowledged, timestamp } ]
+ * }
+ *
+ * Health, alerts and the index are all computed by the backend.
+ * The store does NOT re-calculate them — just stores and exposes.
+ */
+
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
-// ─── Health Index Formula ──────────────────────────────────────────
-// Each sub-factor is normalized 0–100, then weighted and combined.
-// Alerts apply multiplicative penalties.
-
-function normalize(value, okMin, okMax, worstMin, worstMax) {
-  if (value >= okMin && value <= okMax) return 100;
-  if (value < okMin) {
-    const range = okMin - worstMin;
-    if (range <= 0) return 0;
-    return Math.max(0, ((value - worstMin) / range) * 100);
-  }
-  const range = worstMax - okMax;
-  if (range <= 0) return 0;
-  return Math.max(0, ((worstMax - value) / range) * 100);
-}
-
-function calcHealthIndex(t) {
-  if (!t) return { index: 100, factors: [], alertPenalty: 0 };
-
-  const factors = [
-    {
-      key: 'temp_engine',
-      label: 'Температура двигателя',
-      unit: '°C',
-      value: t.temp_engine,
-      score: normalize(t.temp_engine, 60, 88, 30, 110),
-      weight: 0.28,
-    },
-    {
-      key: 'pressure_brake',
-      label: 'Давление тормозов',
-      unit: 'бар',
-      value: t.pressure_brake,
-      score: normalize(t.pressure_brake, 4.5, 5.5, 2.0, 8.0),
-      weight: 0.22,
-    },
-    {
-      key: 'fuel_level',
-      label: 'Уровень топлива',
-      unit: '%',
-      value: t.fuel_level,
-      score: normalize(t.fuel_level, 20, 100, 0, 100),
-      weight: 0.20,
-    },
-    {
-      key: 'voltage',
-      label: 'Напряжение',
-      unit: 'В',
-      value: t.voltage,
-      score: normalize(t.voltage, 570, 640, 480, 720),
-      weight: 0.16,
-    },
-    {
-      key: 'temp_oil',
-      label: 'Температура масла',
-      unit: '°C',
-      value: t.temp_oil,
-      score: normalize(t.temp_oil, 55, 85, 20, 120),
-      weight: 0.14,
-    },
-  ];
-
-  const weighted = factors.reduce((sum, f) => sum + f.score * f.weight, 0);
-
-  const criticals = (t.alerts || []).filter(a => a.severity === 'critical').length;
-  const warnings  = (t.alerts || []).filter(a => a.severity === 'warning').length;
-  const alertPenalty = Math.min(35, criticals * 15 + warnings * 5);
-
-  const index = Math.max(0, Math.round(weighted - alertPenalty));
-
-  const sorted = [...factors].sort((a, b) => (a.score - b.score));
-
-  return { index, factors: sorted, alertPenalty };
-}
-
-function healthCategory(index) {
-  if (index >= 75) return { label: 'Норма',    key: 'normal',   color: 'var(--color-normal)'  };
-  if (index >= 45) return { label: 'Внимание', key: 'warning',  color: 'var(--color-warning)' };
-  return               { label: 'Критично', key: 'critical', color: 'var(--color-critical)' };
-}
-
-// ─── History Config ────────────────────────────────────────────────
 const HISTORY_MAX = 900; // 15 min at 1 Hz
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 export const useTelemetryStore = defineStore('telemetry', () => {
-  // ─ State ─────────────────────────────────────────────────────────
-  const current         = ref(null);
-  const history         = ref([]);          // ring buffer of snapshots
-  const connectionStatus = ref('connecting'); // 'connected'|'mock'|'disconnected'
-  const isReplayMode    = ref(false);
-  const replayIndex     = ref(0);
 
-  // ─ Getters ───────────────────────────────────────────────────────
-  const health = computed(() => calcHealthIndex(current.value));
-  const category = computed(() => healthCategory(health.value.index));
+  // ─── State ────────────────────────────────────────────────────
+  const current          = ref(null);   // latest TelemetryFrame
+  const history          = ref([]);     // ring buffer of frames
+  const connectionStatus = ref('connecting');
 
-  const speedHistory = computed(() =>
-    history.value.map(s => [s.timestamp, s.speed])
+  // ─── Getters ──────────────────────────────────────────────────
+
+  /** Current health object from backend — { index, category, label, top_factors } */
+  const health = computed(() =>
+    current.value?.health ?? { index: 0, category: 'E', label: 'Нет данных', top_factors: [] }
   );
-  const tempEngineHistory = computed(() =>
-    history.value.map(s => [s.timestamp, s.temp_engine])
+
+  /** Derived category key for CSS classes */
+  const categoryKey = computed(() => {
+    const idx = health.value.index;
+    if (idx >= 75) return 'normal';
+    if (idx >= 45) return 'warning';
+    return 'critical';
+  });
+
+  /** Active alerts from latest frame */
+  const alerts = computed(() => current.value?.alerts ?? []);
+
+  /** Shortcut to telemetry data fields */
+  const data = computed(() => current.value?.data ?? null);
+
+  // History slices for charts ([ timestamp_ms, value ])
+  const speedHistory = computed(() =>
+    history.value.map(f => [new Date(f.timestamp).getTime(), f.data?.speed ?? 0])
+  );
+  const tempHistory = computed(() =>
+    history.value.map(f => [new Date(f.timestamp).getTime(), f.data?.temperature ?? 0])
   );
   const fuelHistory = computed(() =>
-    history.value.map(s => [s.timestamp, s.fuel_level])
+    history.value.map(f => [new Date(f.timestamp).getTime(), f.data?.fuel_level ?? 0])
   );
-  const voltageHistory = computed(() =>
-    history.value.map(s => [s.timestamp, s.voltage])
+  const pressureHistory = computed(() =>
+    history.value.map(f => [new Date(f.timestamp).getTime(), f.data?.pressure ?? 0])
   );
   const healthHistory = computed(() =>
-    history.value.map(s => [s.timestamp, calcHealthIndex(s).index])
+    history.value.map(f => [new Date(f.timestamp).getTime(), f.health?.index ?? 0])
   );
 
-  // ─ Actions ───────────────────────────────────────────────────────
-  function updateTelemetry(data) {
-    current.value = data;
-    history.value.push({ ...data });
+  // ─── Actions ──────────────────────────────────────────────────
+
+  function updateTelemetry(frame) {
+    current.value = frame;
+    history.value.push(frame);
     if (history.value.length > HISTORY_MAX) {
       history.value.splice(0, history.value.length - HISTORY_MAX);
     }
@@ -126,42 +92,47 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     connectionStatus.value = status;
   }
 
-  // Replay: returns a slice of history for scrubbing
-  function getReplaySlice(minutes = 15) {
-    const count = Math.min(minutes * 60, history.value.length);
-    return history.value.slice(-count);
+  /** Download CSV from backend (includes DB history, not just in-memory buffer). */
+  async function exportCsv(minutes = 15) {
+    try {
+      const url = `${API_BASE}/export/csv?minutes=${minutes}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `telemetry_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error('[Store] CSV export failed:', err);
+    }
   }
 
-  function exportCsv() {
-    if (!history.value.length) return;
-    const headers = [
-      'timestamp','speed','fuel_level','fuel_consumption',
-      'pressure_brake','pressure_main','temp_engine','temp_oil',
-      'voltage','current','health_index',
-    ];
-    const rows = history.value.map(s => {
-      const hi = calcHealthIndex(s).index;
-      return [
-        new Date(s.timestamp).toISOString(),
-        s.speed, s.fuel_level, s.fuel_consumption,
-        s.pressure_brake, s.pressure_main, s.temp_engine, s.temp_oil,
-        s.voltage, s.current, hi,
-      ].join(',');
-    });
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `telemetry_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  /** Download PDF report from backend. */
+  async function exportPdf(minutes = 15) {
+    try {
+      const url = `${API_BASE}/export/pdf?minutes=${minutes}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `report_${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error('[Store] PDF export failed:', err);
+    }
   }
 
   return {
-    current, history, connectionStatus, isReplayMode, replayIndex,
-    health, category,
-    speedHistory, tempEngineHistory, fuelHistory, voltageHistory, healthHistory,
-    updateTelemetry, setConnectionStatus, getReplaySlice, exportCsv,
+    // state
+    current, history, connectionStatus,
+    // getters
+    health, categoryKey, alerts, data,
+    speedHistory, tempHistory, fuelHistory, pressureHistory, healthHistory,
+    // actions
+    updateTelemetry, setConnectionStatus, exportCsv, exportPdf,
   };
 });

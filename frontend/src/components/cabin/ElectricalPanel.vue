@@ -2,50 +2,50 @@
   <div class="card">
     <div class="card-title">Электрика</div>
 
-    <div class="elec-grid">
-      <div>
-        <div class="elec-name">Напряжение</div>
-        <div class="elec-value font-mono" :style="{ color: voltageColor }">
-          {{ voltage }}<span class="elec-unit"> В</span>
+    <!-- Health factor breakdown for electrical params from backend -->
+    <div v-if="electricalFactors.length">
+      <div v-for="f in electricalFactors" :key="f.parameter" class="sensor-item" style="margin-bottom:0.7rem">
+        <div class="sensor-header">
+          <span class="sensor-name">{{ f.parameter }}</span>
+          <span class="sensor-value font-mono" :style="{ color: scoreColor(f.score) }">
+            {{ Math.round(f.score) }}/100
+          </span>
         </div>
         <div class="bar-track">
-          <div class="bar-fill" :style="{ width: voltageRatio + '%', background: voltageColor }"></div>
+          <div class="bar-fill" :style="{ width: f.score + '%', background: scoreColor(f.score) }"></div>
         </div>
         <div class="sensor-range-row">
-          <span>480</span>
-          <span style="color:var(--ok); font-size:0.58rem; font-weight:600">570–640</span>
-          <span>720</span>
-        </div>
-      </div>
-
-      <div>
-        <div class="elec-name">Ток</div>
-        <div class="elec-value font-mono" :style="{ color: currentColor }">
-          {{ current }}<span class="elec-unit"> А</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" :style="{ width: currentRatio + '%', background: currentColor }"></div>
-        </div>
-        <div class="sensor-range-row">
-          <span>0</span>
-          <span style="color:var(--ok); font-size:0.58rem; font-weight:600">200–1200</span>
-          <span>1400</span>
+          <span class="text-xs" :style="{ color: statusColor(f.status) }">{{ statusLabel(f.status) }}</span>
+          <span class="text-xs text-muted">вес {{ (f.weight * 100).toFixed(0) }}%</span>
         </div>
       </div>
     </div>
 
-    <div class="power-row">
-      <div class="power-block">
-        <span class="power-label">Мощность</span>
-        <span class="power-value font-mono">{{ power }} <span style="font-size:0.7rem; color:var(--text-muted); font-weight:400">кВт</span></span>
-      </div>
-      <div class="power-block">
-        <span class="power-label">cosφ</span>
-        <span class="power-value font-mono">0.92</span>
-      </div>
+    <!-- No electrical factors in current frame -->
+    <div v-else class="text-sm text-muted" style="padding:0.5rem 0">
+      Электрические параметры включены в индекс здоровья.
     </div>
 
-    <!-- TODO: circuit diagram SVG from _reference/cabin/ElectricalPanel.vue -->
+    <div class="card-divider"></div>
+
+    <!-- Overall electrical health contribution -->
+    <div class="flex justify-between items-center">
+      <span class="label">Влияние на индекс</span>
+      <span class="font-mono text-sm" :style="{ color: impactColor }">
+        {{ totalImpact > 0 ? '−' : '' }}{{ totalImpact.toFixed(1) }}
+      </span>
+    </div>
+
+    <!-- Backend alerts for electrical params -->
+    <div v-if="electricalAlerts.length" style="margin-top:0.6rem">
+      <div v-for="a in electricalAlerts" :key="a.id ?? a.code" class="alert-item" :class="`alert-item--${a.severity}`">
+        <span class="alert-icon" :class="`alert-icon--${a.severity}`">⚠</span>
+        <div class="alert-body">
+          <div class="alert-title">{{ a.code }}</div>
+          <div class="alert-message">{{ a.message }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -53,29 +53,36 @@
 import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
 
-const store   = useTelemetryStore();
-const t       = computed(() => store.current);
+const store = useTelemetryStore();
 
-const voltage = computed(() => t.value?.voltage ?? 0);
-const current = computed(() => t.value?.current ?? 0);
-const power   = computed(() => Math.round((voltage.value * current.value) / 1000));
+const ELECTRICAL_PARAMS = new Set(['voltage', 'current', 'power', 'electric', 'traction']);
 
-const voltageColor = computed(() => {
-  const v = voltage.value;
-  if (v >= 570 && v <= 640) return 'var(--ok)';
-  if (v >= 540 && v <= 670) return 'var(--warn)';
-  return 'var(--crit)';
-});
-
-const currentColor = computed(() =>
-  current.value > 1200 ? 'var(--crit)' : current.value > 1000 ? 'var(--warn)' : 'var(--text)'
+const electricalFactors = computed(() =>
+  (store.health.top_factors ?? []).filter(f =>
+    ELECTRICAL_PARAMS.has(f.parameter.toLowerCase()) ||
+    f.parameter.toLowerCase().includes('volt') ||
+    f.parameter.toLowerCase().includes('curr') ||
+    f.parameter.toLowerCase().includes('trac')
+  )
 );
 
-const voltageRatio = computed(() =>
-  Math.min(100, Math.max(0, ((voltage.value - 480) / (720 - 480)) * 100))
+const totalImpact = computed(() =>
+  electricalFactors.value.reduce((s, f) => s + (f.impact ?? 0), 0)
 );
 
-const currentRatio = computed(() =>
-  Math.min(100, Math.max(0, (current.value / 1400) * 100))
+const impactColor = computed(() =>
+  totalImpact.value > 5 ? 'var(--crit)'
+  : totalImpact.value > 2 ? 'var(--warn)'
+  : 'var(--ok)'
 );
+
+const electricalAlerts = computed(() =>
+  (store.alerts ?? []).filter(a =>
+    ELECTRICAL_PARAMS.has((a.parameter ?? '').toLowerCase())
+  )
+);
+
+function scoreColor(s)  { return s >= 75 ? 'var(--ok)' : s >= 45 ? 'var(--warn)' : 'var(--crit)'; }
+function statusColor(s) { return s === 'normal' ? 'var(--ok)' : s === 'warning' ? 'var(--warn)' : 'var(--crit)'; }
+function statusLabel(s) { return { normal: 'норма', warning: 'внимание', critical: 'критично' }[s] ?? s; }
 </script>

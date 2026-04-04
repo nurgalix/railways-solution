@@ -1,7 +1,8 @@
 version: "3.9"
 
 services:
-  # ── PostgreSQL ──────────────────────────────────────────────
+
+  # ── PostgreSQL ─────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     container_name: railways_db
@@ -20,7 +21,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Backend ─────────────────────────────────────────────────
+  # ── Backend (FastAPI) ──────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -30,17 +31,43 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/railways"
+      DATABASE_URL:      "postgresql+asyncpg://postgres:postgres@db:5432/railways"
       DATABASE_URL_SYNC: "postgresql://postgres:postgres@db:5432/railways"
-      SECRET_KEY: "${SECRET_KEY:-super-secret-change-me-in-production}"
+      SECRET_KEY:        "${SECRET_KEY:-super-secret-change-me-in-production}"
       SIMULATOR_ENABLED: "true"
       SIMULATOR_INTERVAL_MS: "1000"
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost:8080"]'
+      # Allow requests from both the nginx container and local dev server
+      CORS_ORIGINS: >-
+        ["http://localhost:5173","http://localhost:3000","http://localhost:80","http://frontend:80","http://localhost"]
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend/health_config.yaml:/app/health_config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Frontend (Vue + nginx) ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # In Docker: nginx proxies /api → backend container, so we use relative paths.
+        # The browser calls /api/ws/telemetry which nginx rewrites to ws://backend:8000/api/ws/telemetry
+        VITE_WS_URL:  "ws://localhost/api/ws/telemetry"
+        VITE_API_URL: "http://localhost/api"
+    container_name: railways_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   pgdata:
