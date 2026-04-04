@@ -8,9 +8,8 @@
       <span v-if="overLimit" class="badge badge-crit" style="margin-left:auto">ПРЕВЫШЕНИЕ</span>
     </div>
 
-    <!-- Speed bar: 0–140 km/h, danger zone at 120 -->
+    <!-- Speed bar: 0–140, danger zone marker at 120 -->
     <div class="bar-track" style="margin-top:0.6rem; height:8px; position:relative">
-      <!-- danger zone marker -->
       <div style="position:absolute; left:85.7%; top:0; bottom:0; width:1px; background:var(--crit); opacity:0.5"></div>
       <div class="bar-fill" :style="{ width: Math.min(speed / 140 * 100, 100) + '%', background: speedColor }"></div>
     </div>
@@ -36,8 +35,6 @@
         <div style="font-weight:600">120 км/ч</div>
       </div>
     </div>
-
-    <!-- TODO: replace speed bar with speedometer gauge from _reference/cabin/SpeedPanel.vue -->
   </div>
 </template>
 
@@ -46,10 +43,9 @@ import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
 
 const store = useTelemetryStore();
-const t     = computed(() => store.current);
 
-const speed     = computed(() => t.value?.speed ?? 0);
-const posKm     = computed(() => t.value?.position?.km ?? '–');
+const speed     = computed(() => store.data?.speed       ?? 0);
+const posKm     = computed(() => store.data?.position?.km_marker ?? '–');
 const overLimit = computed(() => speed.value > 120);
 
 const speedColor = computed(() =>

@@ -9,23 +9,30 @@
 
     <div class="page-grid page-grid-2">
 
-      <!-- Map placeholder -->
+      <!-- Map placeholder (full width) -->
       <div class="card" style="grid-column: 1 / -1">
         <div class="card-title">Карта маршрута</div>
-        <!-- TODO: Leaflet map with real coordinates from backend
-             See _reference/cabin/RouteMapPanel.vue for SVG fallback
-             API: GET /api/route/current-position
-             WS:  listen to store.current.position for live updates -->
-        <div class="chart-placeholder" style="height:320px">
+        <!-- TODO: Leaflet map — see _reference/cabin/RouteMapPanel.vue for SVG fallback
+             Live position: store.data.position → { lat, lng, km_marker }
+             API: GET /api/telemetry/latest for initial position -->
+        <div class="chart-placeholder" style="height:300px">
           <span class="chart-placeholder-icon">🗺</span>
-          <span>Интерактивная карта — будет реализована</span>
-          <span class="text-xs text-muted">Leaflet / MapLibre с тайлами OpenStreetMap</span>
+          <span>Интерактивная карта — реализовать с Leaflet</span>
+          <span class="text-xs text-muted">
+            Live: {{ store.data?.position?.lat?.toFixed(4) }}, {{ store.data?.position?.lng?.toFixed(4) }}
+          </span>
         </div>
       </div>
 
       <!-- Station progress -->
       <div class="card">
         <div class="card-title">Станции маршрута</div>
+
+        <!-- Route progress bar -->
+        <div class="bar-track" style="height:6px; margin-bottom:0.75rem">
+          <div class="bar-fill bar-fill--accent" :style="{ width: routeProgress + '%' }"></div>
+        </div>
+
         <div class="station-list">
           <div
             v-for="s in stations" :key="s.name"
@@ -43,12 +50,19 @@
       <!-- Segment info -->
       <div class="card">
         <div class="card-title">Текущий участок</div>
-        <!-- TODO: fetch segment limits and restrictions from backend
-             API: GET /api/route/segment?km=:km -->
         <div class="flex flex-col gap-3">
           <div>
             <div class="label">Позиция</div>
-            <div class="font-mono" style="font-size:1.4rem; font-weight:700; color:var(--accent)">{{ posKm }} км</div>
+            <div class="font-mono" style="font-size:1.4rem; font-weight:700; color:var(--accent)">
+              {{ posKm }} км
+            </div>
+          </div>
+          <div>
+            <div class="label">Координаты</div>
+            <div class="font-mono text-sm text-sub">
+              {{ store.data?.position?.lat?.toFixed(5) ?? '–' }},
+              {{ store.data?.position?.lng?.toFixed(5) ?? '–' }}
+            </div>
           </div>
           <div>
             <div class="label">Ограничение скорости</div>
@@ -72,14 +86,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
-import { ROUTE_WAYPOINTS, ROUTE_MAX_KM } from '@/services/mockTelemetry.js';
+import { ROUTE_WAYPOINTS, ROUTE_MAX_KM } from '@/constants/route.js';
 
 const store  = useTelemetryStore();
-const t      = computed(() => store.current);
-const posKm  = computed(() => t.value?.position?.km ?? 0);
-const speed  = computed(() => Math.round(t.value?.speed ?? 0));
+const posKm  = computed(() => Math.round(store.data?.position?.km_marker ?? 0));
+const speed  = computed(() => Math.round(store.data?.speed ?? 0));
 
-const remainingKm = computed(() => Math.max(0, ROUTE_MAX_KM - posKm.value));
+const remainingKm   = computed(() => Math.max(0, ROUTE_MAX_KM - posKm.value));
+const routeProgress = computed(() => Math.min(100, (posKm.value / ROUTE_MAX_KM) * 100));
 
 const eta = computed(() => {
   const s = speed.value;

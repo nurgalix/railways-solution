@@ -1,34 +1,60 @@
 <template>
   <div class="card">
-    <div class="card-title">Давления / Температуры</div>
+    <div class="card-title">Давление / Температура</div>
 
     <div class="sensor-grid">
-      <div v-for="s in sensors" :key="s.key" class="sensor-item">
+
+      <!-- Pressure -->
+      <div class="sensor-item">
         <div class="sensor-header">
-          <span class="sensor-name">{{ s.name }}</span>
-          <span class="sensor-value font-mono" :style="{ color: s.color }">
-            {{ s.value.toFixed(s.dec) }} {{ s.unit }}
+          <span class="sensor-name">Давление</span>
+          <span class="sensor-value font-mono" :style="{ color: pressureColor }">
+            {{ pressure.toFixed(2) }} бар
           </span>
         </div>
         <div class="bar-track" style="position:relative">
-          <!-- ok zone highlight -->
-          <div :style="{
-            position:'absolute', top:0, bottom:0, borderRadius:'3px',
-            background:'rgba(16,185,129,0.12)',
-            left: s.okLeft + '%',
-            width: s.okWidth + '%',
-          }"></div>
-          <div class="bar-fill" :style="{ width: s.ratio + '%', background: s.color }"></div>
+          <div :style="okZone(4.5, 5.5, 0, 10)"></div>
+          <div class="bar-fill" :style="{ width: Math.min(pressure / 10 * 100, 100) + '%', background: pressureColor }"></div>
         </div>
         <div class="sensor-range-row">
-          <span>{{ s.min }}</span>
-          <span :style="{ color: s.color, fontSize:'0.58rem', fontWeight:600 }">{{ s.status }}</span>
-          <span>{{ s.max }}</span>
+          <span>0</span>
+          <span :style="{ color: pressureColor, fontSize:'0.58rem', fontWeight:600 }">{{ pressureStatus }}</span>
+          <span>10</span>
+        </div>
+      </div>
+
+      <!-- Temperature -->
+      <div class="sensor-item">
+        <div class="sensor-header">
+          <span class="sensor-name">Температура</span>
+          <span class="sensor-value font-mono" :style="{ color: tempColor }">
+            {{ temperature.toFixed(1) }} °C
+          </span>
+        </div>
+        <div class="bar-track" style="position:relative">
+          <div :style="okZone(60, 88, 0, 120)"></div>
+          <div class="bar-fill" :style="{ width: Math.min(temperature / 120 * 100, 100) + '%', background: tempColor }"></div>
+        </div>
+        <div class="sensor-range-row">
+          <span>0</span>
+          <span :style="{ color: tempColor, fontSize:'0.58rem', fontWeight:600 }">{{ tempStatus }}</span>
+          <span>120</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Active alerts from backend related to these params -->
+    <div v-if="relatedAlerts.length" style="margin-top:0.75rem">
+      <div class="label" style="margin-bottom:0.3rem">Связанные алерты</div>
+      <div v-for="a in relatedAlerts" :key="a.id ?? a.code" class="alert-item" :class="`alert-item--${a.severity}`">
+        <span class="alert-icon" :class="`alert-icon--${a.severity}`">{{ a.severity === 'critical' ? '⚠' : 'ℹ' }}</span>
+        <div class="alert-body">
+          <div class="alert-title">{{ a.code }}</div>
+          <div class="alert-message">{{ a.message }}</div>
         </div>
       </div>
     </div>
-
-    <!-- TODO: add thermometer / gauge visuals from _reference/cabin/PressureTempPanel.vue -->
   </div>
 </template>
 
@@ -37,31 +63,56 @@ import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
 
 const store = useTelemetryStore();
-const t     = computed(() => store.current);
 
-function makeSensor({ key, name, unit, dec, min, max, okMin, okMax, warnMin, warnMax }) {
-  return computed(() => {
-    const raw   = t.value?.[key] ?? 0;
-    const ratio = Math.min(100, Math.max(0, ((raw - min) / (max - min)) * 100));
-    const okLeft  = ((okMin - min) / (max - min)) * 100;
-    const okWidth = ((okMax - okMin) / (max - min)) * 100;
-    let color  = 'var(--ok)';
-    let status = 'норма';
-    if (raw < warnMin || raw > warnMax) { color = 'var(--crit)'; status = 'критично'; }
-    else if (raw < okMin || raw > okMax) { color = 'var(--warn)'; status = 'внимание'; }
-    return { key, name, unit, dec, min, max, value: raw, ratio, okLeft, okWidth, color, status };
-  });
+const pressure    = computed(() => store.data?.pressure    ?? 0);
+const temperature = computed(() => store.data?.temperature ?? 0);
+
+// Status labels
+const pressureStatus = computed(() => {
+  const p = pressure.value;
+  if (p >= 4.5 && p <= 5.5) return 'норма';
+  if (p >= 4.0 && p <= 6.0) return 'внимание';
+  return 'критично';
+});
+
+const tempStatus = computed(() => {
+  const t = temperature.value;
+  if (t >= 60 && t <= 88) return 'норма';
+  if (t >= 50 && t <= 100) return 'внимание';
+  return 'критично';
+});
+
+// Colors
+const pressureColor = computed(() => {
+  const p = pressure.value;
+  if (p >= 4.5 && p <= 5.5) return 'var(--ok)';
+  if (p >= 4.0 && p <= 6.0) return 'var(--warn)';
+  return 'var(--crit)';
+});
+
+const tempColor = computed(() => {
+  const t = temperature.value;
+  if (t > 100) return 'var(--crit)';
+  if (t > 88)  return 'var(--warn)';
+  return 'var(--ok)';
+});
+
+// OK zone style helper (position:absolute overlay on bar-track)
+function okZone(okMin, okMax, rangeMin, rangeMax) {
+  const total = rangeMax - rangeMin;
+  const left  = ((okMin - rangeMin) / total * 100).toFixed(1);
+  const width = ((okMax - okMin)    / total * 100).toFixed(1);
+  return {
+    position: 'absolute', top: 0, bottom: 0, borderRadius: '3px',
+    background: 'rgba(16,185,129,0.15)',
+    left: left + '%', width: width + '%',
+  };
 }
 
-const pressureBrakeS = makeSensor({ key:'pressure_brake', name:'Тормозная',  unit:'бар', dec:2, min:0, max:8,   okMin:4.5, okMax:5.5, warnMin:4.0, warnMax:6.0 });
-const pressureMainS  = makeSensor({ key:'pressure_main',  name:'Главная',    unit:'бар', dec:2, min:0, max:12,  okMin:7.5, okMax:9.5, warnMin:6.5, warnMax:10.5 });
-const tempEngineS    = makeSensor({ key:'temp_engine',    name:'Двигатель',  unit:'°C',  dec:1, min:0, max:120, okMin:60,  okMax:88,  warnMin:50,  warnMax:100 });
-const tempOilS       = makeSensor({ key:'temp_oil',       name:'Масло',      unit:'°C',  dec:1, min:0, max:110, okMin:55,  okMax:85,  warnMin:45,  warnMax:95 });
-
-const sensors = computed(() => [
-  pressureBrakeS.value,
-  pressureMainS.value,
-  tempEngineS.value,
-  tempOilS.value,
-]);
+// Filter alerts relevant to pressure/temperature
+const relatedAlerts = computed(() =>
+  (store.alerts ?? []).filter(a =>
+    a.parameter === 'pressure' || a.parameter === 'temperature'
+  )
+);
 </script>

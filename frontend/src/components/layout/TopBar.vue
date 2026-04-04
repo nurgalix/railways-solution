@@ -10,21 +10,19 @@
       </div>
     </RouterLink>
 
-    <!-- Navigation tabs -->
+    <!-- Navigation -->
     <nav class="nav-tabs" role="navigation" aria-label="Основная навигация">
       <RouterLink
-        v-for="route in navRoutes"
-        :key="route.name"
-        :to="route.path"
+        v-for="r in navRoutes"
+        :key="r.name"
+        :to="r.path"
         class="nav-tab"
-        :aria-label="route.meta.label"
+        :aria-label="r.meta.label"
       >
-        {{ route.meta.label }}
-        <!-- Alert badge on Alerts tab -->
+        {{ r.meta.label }}
         <span
-          v-if="route.name === 'alerts' && alertCount > 0"
+          v-if="r.name === 'alerts' && alertCount > 0"
           class="nav-tab-badge"
-          aria-label="`${alertCount} активных алертов`"
         >{{ alertCount }}</span>
       </RouterLink>
     </nav>
@@ -36,14 +34,13 @@
       <div class="topbar-status">
         <span class="status-dot" :class="`status-dot--${store.connectionStatus}`"></span>
         <span class="text-xs">{{ statusLabel }}</span>
-        <span v-if="store.connectionStatus === 'mock'" class="mock-badge">СИМУЛЯТОР</span>
       </div>
 
-      <!-- Highload toggle -->
+      <!-- Highload toggle — calls backend API -->
       <button
         class="pill-btn"
         :class="{ 'is-danger': highload }"
-        title="Имитация ×10 нагрузки"
+        :title="highload ? 'Отключить highload' : 'Включить ×10 нагрузку'"
         @click="toggleHighload"
       >⚡ ×10</button>
 
@@ -54,9 +51,8 @@
         @click="uiStore.toggleTheme()"
       >{{ uiStore.theme === 'dark' ? '☀️' : '🌙' }}</button>
 
-      <!-- Clock -->
+      <!-- Live clock -->
       <time class="topbar-clock font-mono" :datetime="isoTime">{{ clock }}</time>
-
     </div>
   </header>
 </template>
@@ -72,25 +68,21 @@ const store   = useTelemetryStore();
 const uiStore = useUiStore();
 const router  = useRouter();
 
-// Expose only the real route list (skip redirect/catchall entries)
-const navRoutes = computed(() =>
-  router.getRoutes().filter(r => r.meta?.label)
-);
+const navRoutes = computed(() => router.getRoutes().filter(r => r.meta?.label));
 
-const alertCount = computed(() => store.current?.alerts?.length ?? 0);
+const alertCount  = computed(() => store.alerts.length);
 
 const statusLabel = computed(() => ({
   connected:    'Подключено',
-  mock:         'Симулятор',
-  connecting:   'Подключение…',
   disconnected: 'Нет связи',
+  connecting:   'Подключение…',
 }[store.connectionStatus] || store.connectionStatus));
 
-// Highload
+// Highload — delegates to telemetryService which calls POST /api/simulator/highload
 const highload = ref(false);
-function toggleHighload() {
+async function toggleHighload() {
   highload.value = !highload.value;
-  telemetryService.setHighload(highload.value);
+  await telemetryService.setHighload(highload.value);
 }
 
 // Live clock

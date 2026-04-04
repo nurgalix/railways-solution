@@ -12,7 +12,7 @@
     <transition-group name="alert-anim" tag="div" class="alert-list" role="list">
       <div
         v-for="a in sorted"
-        :key="a.id"
+        :key="a.id ?? a.code"
         class="alert-item"
         :class="`alert-item--${a.severity}`"
         :role="a.severity === 'critical' ? 'alert' : 'status'"
@@ -21,13 +21,19 @@
           {{ a.severity === 'critical' ? '⚠' : 'ℹ' }}
         </span>
         <div class="alert-body">
-          <div class="alert-title">{{ a.title }}</div>
+          <div class="alert-title">{{ a.code }}</div>
           <div class="alert-message">{{ a.message }}</div>
           <div v-if="a.recommendation" class="alert-rec">
             <span class="alert-rec-arrow">→</span> {{ a.recommendation }}
           </div>
+          <div v-if="a.parameter" class="alert-time">
+            {{ a.parameter }}: {{ a.value?.toFixed(2) }} (порог {{ a.threshold }})
+          </div>
           <div class="alert-time">{{ fmt(a.timestamp) }}</div>
         </div>
+        <span class="badge" :class="a.severity === 'critical' ? 'badge-crit' : a.severity === 'warning' ? 'badge-warn' : 'badge-ok'">
+          {{ severityLabel(a.severity) }}
+        </span>
       </div>
     </transition-group>
   </div>
@@ -38,7 +44,7 @@ import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
 
 const store  = useTelemetryStore();
-const alerts = computed(() => store.current?.alerts ?? []);
+const alerts = computed(() => store.alerts);
 
 const sorted = computed(() =>
   [...alerts.value].sort((a, b) => {
@@ -46,6 +52,8 @@ const sorted = computed(() =>
     return (o[a.severity] ?? 9) - (o[b.severity] ?? 9);
   })
 );
+
+const severityLabel = s => ({ critical: 'КРИТИЧНО', warning: 'ВНИМАНИЕ', info: 'ИНФО' }[s] ?? s.toUpperCase());
 
 function fmt(ts) {
   if (!ts) return '';

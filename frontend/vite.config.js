@@ -12,14 +12,15 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // REST API
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        // Silently fail if backend is not running
       },
-      '/ws': {
-        target: 'ws://localhost:8000',
-        ws: true,
+      // WebSocket  (vite dev proxy for WS)
+      '/api/ws': {
+        target:  'ws://localhost:8000',
+        ws:      true,
         changeOrigin: true,
       },
     },
