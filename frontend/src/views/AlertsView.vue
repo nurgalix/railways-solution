@@ -93,13 +93,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
+import { translateAlerts } from '@/utils/alertTranslations.js';
 
 const store = useTelemetryStore();
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Live alerts from WS
-const liveAlerts = computed(() => store.alerts);
+// Live alerts from WS (translated)
+const liveAlerts = computed(() => translateAlerts(store.alerts));
 
 // History from REST
 const historyAlerts  = ref([]);
@@ -117,7 +118,8 @@ async function loadHistory(minutes = historyMinutes.value) {
     if (historySeverity.value) url += `&severity=${historySeverity.value}`;
     const res  = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    historyAlerts.value = await res.json();
+    const data = await res.json();
+    historyAlerts.value = translateAlerts(data); // Translate history alerts
   } catch (e) {
     error.value = `Ошибка загрузки: ${e.message}`;
   } finally {

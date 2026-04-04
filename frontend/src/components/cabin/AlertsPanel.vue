@@ -42,16 +42,28 @@
 <script setup>
 import { computed } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
+import { translateAlerts } from '@/utils/alertTranslations.js';
 
 const store  = useTelemetryStore();
-const alerts = computed(() => store.alerts);
 
-const sorted = computed(() =>
-  [...alerts.value].sort((a, b) => {
+// Translate and limit alerts (show max 5 most recent/critical)
+const alerts = computed(() => {
+  const raw = store.alerts;
+  const translated = translateAlerts(raw);
+  
+  // Sort by severity (critical first) and take top 5
+  const sorted = [...translated].sort((a, b) => {
     const o = { critical: 0, warning: 1, info: 2 };
-    return (o[a.severity] ?? 9) - (o[b.severity] ?? 9);
-  })
-);
+    const severityDiff = (o[a.severity] ?? 9) - (o[b.severity] ?? 9);
+    if (severityDiff !== 0) return severityDiff;
+    // If same severity, newer first
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+  
+  return sorted.slice(0, 5); // Show max 5 alerts
+});
+
+const sorted = computed(() => alerts.value);
 
 const severityLabel = s => ({ critical: 'КРИТИЧНО', warning: 'ВНИМАНИЕ', info: 'ИНФО' }[s] ?? s.toUpperCase());
 

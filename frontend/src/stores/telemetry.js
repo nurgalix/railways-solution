@@ -31,6 +31,13 @@ import { ref, computed } from 'vue';
 
 const HISTORY_MAX = 900; // 15 min at 1 Hz
 
+// Alert TTL (time-to-live) in milliseconds - critical alerts last longer
+const ALERT_TTL = {
+  critical: 120000, // 2 minutes
+  warning:   45000, // 45 seconds
+  info:      20000, // 20 seconds
+};
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export const useTelemetryStore = defineStore('telemetry', () => {
@@ -39,6 +46,9 @@ export const useTelemetryStore = defineStore('telemetry', () => {
   const current          = ref(null);   // latest TelemetryFrame
   const history          = ref([]);     // ring buffer of frames
   const connectionStatus = ref('connecting');
+  
+  // Persistent alerts with TTL tracking
+  const persistentAlerts = ref([]);     // { ...alert, expiresAt: timestamp }
 
   // ─── Getters ──────────────────────────────────────────────────
 
@@ -55,8 +65,13 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     return 'critical';
   });
 
-  /** Active alerts from latest frame */
-  const alerts = computed(() => current.value?.alerts ?? []);
+  /** Active alerts - includes persistent alerts that haven't expired */
+  const alerts = computed(() => {
+    const now = Date.now();
+    // Filter out expired alerts
+    const active = persistentAlerts.value.filter(a => a.expiresAt > now);
+    return active;
+  });
 
   /** Shortcut to telemetry data fields */
   const data = computed(() => current.value?.data ?? null);
@@ -85,6 +100,37 @@ export const useTelemetryStore = defineStore('telemetry', () => {
     history.value.push(frame);
     if (history.value.length > HISTORY_MAX) {
       history.value.splice(0, history.value.length - HISTORY_MAX);
+    }
+    
+    // Process incoming alerts - add to persistent with TTL
+    if (frame.alerts && frame.alerts.length > 0) {
+      const now = Date.now();
+      for (const alert of frame.alerts) {
+        const ttl = ALERT_TTL[alert.severity] || ALERT_TTL.info;
+        const alertKey = `${alert.code}-${alert.parameter}`;
+        
+        // Check if this alert already exists (by code+parameter)
+        const existingIdx = persistentAlerts.value.findIndex(
+          a => `${a.code}-${a.parameter}` === alertKey
+        );
+        
+        if (existingIdx >= 0) {
+          // Refresh expiry time for existing alert
+          persistentAlerts.value[existingIdx] = {
+            ...alert,
+            expiresAt: now + ttl,
+          };
+        } else {
+          // Add new alert
+          persistentAlerts.value.push({
+            ...alert,
+            expiresAt: now + ttl,
+          });
+        }
+      }
+      
+      // Clean up expired alerts periodically
+      persistentAlerts.value = persistentAlerts.value.filter(a => a.expiresAt > now);
     }
   }
 
