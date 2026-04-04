@@ -7,7 +7,6 @@ __pycache__/
 backend/.venv/
 env/
 .env
-
 # Frontend / Node
 node_modules/
 dist/
@@ -21,3 +20,4 @@ build/
 # IDE
 .idea/
 .vscode/
+.claude/settings.local.json
