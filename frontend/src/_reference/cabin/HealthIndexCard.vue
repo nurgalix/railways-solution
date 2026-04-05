@@ -64,7 +64,7 @@
 
     <!-- Alert penalty badge -->
     <div v-if="store.health.alertPenalty > 0" class="penalty-row">
-      <span class="badge badge-critical">−{{ store.health.alertPenalty }} за алерты</span>
+      <span class="badge badge-critical">−{{ store.health.alertPenalty }} за сообщения</span>
     </div>
   </div>
 </template>
