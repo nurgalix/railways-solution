@@ -4,7 +4,7 @@ FROM node:20 AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN rm -f package-lock.json && npm install
+RUN npm ci
 
 COPY . .
 

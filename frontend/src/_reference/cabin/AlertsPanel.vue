@@ -1,7 +1,7 @@
 <template>
-  <div class="card alerts-panel" role="region" aria-label="Алерты и рекомендации" aria-live="polite">
+  <div class="card alerts-panel" role="region" aria-label="Сообщения и рекомендации" aria-live="polite">
     <div class="card-title">
-      Алерты
+      Сообщения
       <span v-if="alerts.length" class="alert-count" :class="countClass">
         {{ alerts.length }}
       </span>

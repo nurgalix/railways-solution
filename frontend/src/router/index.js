@@ -1,17 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/auth.js';
 
-/**
- * Routes for the Locomotive Digital Twin dashboard.
- *
- * Hash-mode routing is used so the app works without a server
- * rewrite rule (important for local/demo deployments).
- *
- * Adding a new route:
- *   1. Create a view in src/views/
- *   2. Add an entry below
- *   3. Add a <RouterLink> or nav-tab in TopBar.vue
- */
 const routes = [
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { public: true },
+  },
   {
     path: '/',
     redirect: '/dashboard',
@@ -26,7 +22,7 @@ const routes = [
     path: '/alerts',
     name: 'alerts',
     component: () => import('@/views/AlertsView.vue'),
-    meta: { label: 'Алерты', icon: '⚠' },
+    meta: { label: 'Сообщения', icon: '⚠' },
   },
   {
     path: '/trends',
@@ -46,7 +42,6 @@ const routes = [
     component: () => import('@/views/SettingsView.vue'),
     meta: { label: 'Настройки', icon: '⚙' },
   },
-  // Catch-all — redirect unknown paths to dashboard
   {
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard',
@@ -56,6 +51,13 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+// Navigation guard — redirect to /login if not authenticated
+router.beforeEach((to) => {
+  if (to.meta.public) return true;
+  const auth = useAuthStore();
+  if (!auth.isAuthenticated) return { name: 'login' };
 });
 
 export default router;

@@ -2,134 +2,187 @@
   <div class="app-content">
     <div class="page-header">
       <div class="page-title">Тренды и аналитика</div>
-      <div class="page-subtitle">Телеметрия · последние {{ windowMin }} мин</div>
+      <div class="page-subtitle">Телеметрия · последние {{ windowMin }} мин · {{ store.history.length }} точек в буфере</div>
     </div>
 
-    <!-- Controls -->
+    <!-- Time window + export controls -->
     <div class="flex gap-2" style="margin-bottom:0.75rem; flex-wrap:wrap; align-items:center">
       <button
         v-for="opt in windowOptions" :key="opt.v"
         class="pill-btn" :class="{ 'is-active': windowMin === opt.v }"
-        @click="setWindow(opt.v)"
+        @click="windowMin = opt.v"
       >{{ opt.l }}</button>
-
-      <span class="text-xs text-muted" style="margin-left:auto">
-        {{ store.history.length }} точек в буфере ·
-        <button class="pill-btn" @click="fetchHistory">↻ История из БД</button>
+      <span style="margin-left:auto" class="flex gap-2">
+        <button class="pill-btn" @click="store.exportCsv(windowMin)">↓ CSV</button>
+        <button class="pill-btn" @click="store.exportPdf(windowMin)">↓ PDF</button>
       </span>
     </div>
 
-    <div class="page-grid page-grid-2">
-
-      <div class="card">
-        <div class="card-title">Скорость (км/ч)</div>
-        <!-- ECharts: source = store.speedHistory, slice last windowMin*60 points -->
-        <div class="chart-placeholder">
-          <span class="chart-placeholder-icon">📈</span>
-          <span>{{ sliceCount }} точек · {{ store.data?.speed?.toFixed(1) ?? '–' }} км/ч (сейчас)</span>
+    <!-- Charts grid -->
+    <div class="trends-grid">
+      <div v-for="m in metrics" :key="m.key"
+        class="card trends-chart-card"
+        :style="m.full ? 'grid-column: 1 / -1' : ''"
+      >
+        <div class="card-title" style="margin-bottom:0.4rem">
+          {{ m.label }}
+          <span class="text-muted" style="font-weight:400; text-transform:none; letter-spacing:0">{{ m.unit }}</span>
+          <span class="font-mono" style="margin-left:auto; font-weight:700" :style="{ color: m.hex }">
+            {{ currentVal(m) }}
+          </span>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Температура (°C)</div>
-        <div class="chart-placeholder">
-          <span class="chart-placeholder-icon">🌡</span>
-          <span>{{ store.data?.temperature?.toFixed(1) ?? '–' }} °C (сейчас)</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Уровень топлива (%)</div>
-        <div class="chart-placeholder">
-          <span class="chart-placeholder-icon">⛽</span>
-          <span>{{ store.data?.fuel_level?.toFixed(1) ?? '–' }} % (сейчас)</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Давление (бар)</div>
-        <div class="chart-placeholder">
-          <span class="chart-placeholder-icon">🔵</span>
-          <span>{{ store.data?.pressure?.toFixed(2) ?? '–' }} бар (сейчас)</span>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1">
-        <div class="card-title">Индекс здоровья</div>
-        <div class="chart-placeholder">
-          <span class="chart-placeholder-icon">💚</span>
-          <span>{{ store.health.index?.toFixed(1) ?? '–' }} / 100 (сейчас) · категория {{ store.health.category }}</span>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- DB history stats -->
-    <div v-if="dbHistory.length" class="card" style="margin-top:0.75rem">
-      <div class="card-title">Данные из БД (GET /api/telemetry/history)</div>
-      <div class="flex gap-3 text-sm" style="flex-wrap:wrap">
-        <span>Записей: <b>{{ dbHistory.length }}</b></span>
-        <span>Период: <b>{{ dbHistory[0]?.timestamp?.slice(0,16) }}</b> → <b>{{ dbHistory[dbHistory.length-1]?.timestamp?.slice(0,16) }}</b></span>
-        <span v-if="dbError" style="color:var(--crit)">{{ dbError }}</span>
-      </div>
-    </div>
-
-    <!-- Replay & export -->
-    <div class="card" style="margin-top:0.75rem">
-      <div class="card-title">Перемотка и экспорт</div>
-      <div class="flex gap-2 items-center" style="flex-wrap:wrap">
-        <input
-          type="range" min="0" :max="Math.max(0, store.history.length - 1)"
-          v-model="replayPos"
-          style="flex:1; min-width:120px; accent-color:var(--accent)"
-          aria-label="Перемотка истории"
-        />
-        <span class="font-mono text-sm text-sub">{{ replayLabel }}</span>
-        <button class="pill-btn" @click="store.exportCsv(windowMin)">↓ CSV ({{ windowMin }}м)</button>
-        <button class="pill-btn" @click="store.exportPdf(windowMin)">↓ PDF ({{ windowMin }}м)</button>
+        <div :ref="el => chartEls[m.key] = el" class="trends-chart-area"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
+import { useUiStore }        from '@/stores/ui.js';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, DataZoomComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 
-const store     = useTelemetryStore();
+echarts.use([LineChart, GridComponent, TooltipComponent, DataZoomComponent, CanvasRenderer]);
+
+const store   = useTelemetryStore();
+const uiStore = useUiStore();
+
 const windowMin = ref(5);
-const replayPos = ref(0);
-const dbHistory = ref([]);
-const dbError   = ref(null);
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
 const windowOptions = [
   { l: '1м', v: 1 }, { l: '5м', v: 5 }, { l: '10м', v: 10 }, { l: '15м', v: 15 },
 ];
 
-const sliceCount = computed(() => Math.min(windowMin.value * 60, store.history.length));
+const metrics = [
+  { key: 'speed',       label: 'Скорость',     unit: 'км/ч', hex: '#3b82f6' },
+  { key: 'temperature', label: 'Температура',  unit: '°C',   hex: '#f59e0b' },
+  { key: 'fuel_level',  label: 'Уровень топлива', unit: '%', hex: '#10b981' },
+  { key: 'pressure',    label: 'Давление',     unit: 'бар',  hex: '#8b5cf6' },
+  { key: 'health',      label: 'Индекс здоровья', unit: '/ 100', hex: '#10b981', full: true },
+];
 
-function setWindow(v) {
-  windowMin.value = v;
+function currentVal(m) {
+  if (!store.data && m.key !== 'health') return '–';
+  const v = m.key === 'health'
+    ? store.health.index
+    : store.data?.[m.key];
+  return v != null ? (+v).toFixed(1) + ' ' + m.unit : '–';
 }
 
-async function fetchHistory() {
-  dbError.value = null;
-  try {
-    const res = await fetch(`${API_BASE}/telemetry/history?minutes=${windowMin.value}&limit=500`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    dbHistory.value = json.items ?? [];
-  } catch (e) {
-    dbError.value = `Ошибка: ${e.message}`;
+const chartEls  = reactive({});
+const chartInsts = {};
+const ros = {};
+
+function getSlice(key) {
+  const count = Math.min(windowMin.value * 60, store.history.length);
+  const slice = store.history.slice(Math.max(0, store.history.length - count));
+  return slice.map(frame => {
+    const t = new Date(frame.timestamp).toLocaleTimeString('ru-RU', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const v = key === 'health' ? (frame.health?.index ?? 0) : (frame.data?.[key] ?? 0);
+    return [t, +v.toFixed(2)];
+  });
+}
+
+function buildOption(m) {
+  const dark = uiStore.theme === 'dark';
+  const gridColor  = dark ? '#1e2d45' : '#e2e8f0';
+  const labelColor = dark ? '#64748b' : '#94a3b8';
+  const data = getSlice(m.key);
+
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: dark ? '#1a2235' : '#fff',
+      borderColor: gridColor,
+      textStyle: { color: dark ? '#e2e8f0' : '#0f172a', fontSize: 11 },
+      formatter: p => `<b>${p[0].axisValue}</b><br/>${m.label}: <b>${Number(p[0].value[1]).toFixed(2)} ${m.unit}</b>`,
+    },
+    grid: { left: 46, right: 10, top: 8, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      axisLine:  { lineStyle: { color: gridColor } },
+      axisLabel: { color: labelColor, fontSize: 9 },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine:  { show: false },
+      splitLine: { lineStyle: { color: gridColor, type: 'dashed' } },
+      axisLabel: { color: labelColor, fontSize: 9 },
+    },
+    dataZoom: [{ type: 'inside' }],
+    series: [{
+      type: 'line',
+      data,
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { color: m.hex, width: 2 },
+      areaStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: m.hex + '50' },
+            { offset: 1, color: m.hex + '00' },
+          ],
+        },
+      },
+    }],
+  };
+}
+
+function updateAll() {
+  for (const m of metrics) {
+    if (chartInsts[m.key]) {
+      chartInsts[m.key].setOption(buildOption(m), { notMerge: false, lazyUpdate: true });
+    }
   }
 }
 
-const replayLabel = computed(() => {
-  const idx   = Math.min(Number(replayPos.value), store.history.length - 1);
-  const frame = store.history[idx];
-  if (!frame) return '–';
-  return new Date(frame.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+let raf;
+watch([() => store.history.length, windowMin], () => {
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(updateAll);
+});
+watch(() => uiStore.theme, updateAll);
+
+onMounted(() => {
+  for (const m of metrics) {
+    const el = chartEls[m.key];
+    if (!el) continue;
+    chartInsts[m.key] = echarts.init(el);
+    chartInsts[m.key].setOption(buildOption(m));
+    ros[m.key] = new ResizeObserver(() => chartInsts[m.key]?.resize());
+    ros[m.key].observe(el);
+  }
+});
+
+onUnmounted(() => {
+  cancelAnimationFrame(raf);
+  for (const m of metrics) {
+    ros[m.key]?.disconnect();
+    chartInsts[m.key]?.dispose();
+  }
 });
 </script>
+
+<style scoped>
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .trends-grid { grid-template-columns: 1fr; }
+}
+
+.trends-chart-card { display: flex; flex-direction: column; }
+.trends-chart-area { width: 100%; height: 220px; }
+</style>

@@ -1,7 +1,7 @@
 <template>
-  <div class="card">
+  <div class="card alerts-panel">
     <div class="card-title">
-      Алерты
+      Сообщения
       <span v-if="alerts.length" class="badge badge-crit">{{ alerts.length }}</span>
     </div>
 
@@ -9,7 +9,7 @@
       <span>✓</span> Нарушений не обнаружено
     </div>
 
-    <transition-group name="alert-anim" tag="div" class="alert-list" role="list">
+    <transition-group name="alert-anim" tag="div" class="alert-list alerts-scroll" role="list">
       <div
         v-for="a in sorted"
         :key="a.id ?? a.code"
@@ -72,3 +72,17 @@ function fmt(ts) {
   return new Date(ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 </script>
+
+<style scoped>
+.alerts-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.alerts-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+</style>

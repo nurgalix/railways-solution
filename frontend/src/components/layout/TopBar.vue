@@ -53,6 +53,12 @@
 
       <!-- Live clock -->
       <time class="topbar-clock font-mono" :datetime="isoTime">{{ clock }}</time>
+
+      <!-- User + logout -->
+      <div v-if="auth.user" class="topbar-user">
+        <span class="topbar-username">{{ auth.user.username }}</span>
+        <button class="pill-btn" title="Выйти" @click="handleLogout">⎋ Выйти</button>
+      </div>
     </div>
   </header>
 </template>
@@ -62,11 +68,18 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTelemetryStore } from '@/stores/telemetry.js';
 import { useUiStore }        from '@/stores/ui.js';
+import { useAuthStore }      from '@/stores/auth.js';
 import { telemetryService }  from '@/services/telemetryService.js';
 
 const store   = useTelemetryStore();
 const uiStore = useUiStore();
+const auth    = useAuthStore();
 const router  = useRouter();
+
+function handleLogout() {
+  auth.logout();
+  router.replace('/login');
+}
 
 const navRoutes = computed(() => router.getRoutes().filter(r => r.meta?.label));
 

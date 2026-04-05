@@ -166,6 +166,14 @@ button {
   padding: 0.75rem;
 }
 
+/* Route view: fills remaining viewport height, no inner scroll */
+.app-content--map {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 
 /* ─── 5. TOPBAR ──────────────────────────────────────────────────── */
 
@@ -231,6 +239,19 @@ button {
   align-items: center;
   gap: 0.4rem;
   flex-shrink: 0;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border);
+}
+
+.topbar-username {
+  font-size: 0.78rem;
+  color: var(--text-sub);
 }
 
 .topbar-clock {
@@ -626,35 +647,23 @@ button {
 }
 
 
-/* ─── 18. DASHBOARD VIEW (3-column) ──────────────────────────────── */
+/* ─── 18. DASHBOARD VIEW (2-column) ──────────────────────────────── */
 
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   align-items: start;
 }
 
-.dash-col { display: flex; flex-direction: column; gap: 0.75rem; }
-
-@media (max-width: 1300px) {
-  .dashboard-layout { grid-template-columns: 250px 1fr 250px; }
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-@media (max-width: 1000px) {
-  .dashboard-layout {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "center  right"
-      "left    right";
-  }
-  .dash-col-left   { grid-area: left; }
-  .dash-col-center { grid-area: center; }
-  .dash-col-right  { grid-area: right; }
-}
-
-@media (max-width: 680px) {
-  .dashboard-layout { grid-template-columns: 1fr; grid-template-areas: none; }
+@media (max-width: 700px) {
+  .dashboard-layout { grid-template-columns: 1fr; }
 }
 
 
