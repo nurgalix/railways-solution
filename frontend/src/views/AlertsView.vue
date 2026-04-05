@@ -99,6 +99,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useTelemetryStore } from '@/stores/telemetry.js';
+import { translateAlerts } from '@/utils/alertTranslations.js';
 
 const store = useTelemetryStore();
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -126,6 +127,8 @@ watch(() => store.alerts, (newAlerts) => {
       firstSeen: existing?.firstSeen ?? now,
     });
   }
+// Live alerts from WS (translated)
+const liveAlerts = computed(() => translateAlerts(store.alerts));
 
   // Mark stale but don't delete yet — cleanup timer handles removal
   // (forces re-render so _stale flag updates)
@@ -177,7 +180,8 @@ async function loadHistory(minutes = historyMinutes.value) {
     if (historySeverity.value) url += `&severity=${historySeverity.value}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    historyAlerts.value = await res.json();
+    const data = await res.json();
+    historyAlerts.value = translateAlerts(data); // Translate history alerts
   } catch (e) {
     error.value = `Ошибка загрузки: ${e.message}`;
   } finally {

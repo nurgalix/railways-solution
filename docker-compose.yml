@@ -42,14 +42,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend/health_config.yaml:/app/health_config.yaml
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/healthcheck || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
+    volumes:
+      - ./backend/health_config.yaml:/app/health_config.yaml
 
   # ── Frontend (Vue + nginx) ─────────────────────────────────────
   frontend:

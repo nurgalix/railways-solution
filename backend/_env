@@ -1,0 +1,6 @@
+DATABASE_URL=postgresql+asyncpg://nurgali@localhost:5432/railways
+DATABASE_URL_SYNC=postgresql://nurgali@localhost:5432/railways
+SECRET_KEY=dev-secret-key-change-in-production
+SIMULATOR_ENABLED=true
+SIMULATOR_INTERVAL_MS=1000
+CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://localhost:8080"]

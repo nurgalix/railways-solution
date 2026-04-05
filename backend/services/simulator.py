@@ -129,23 +129,24 @@ class LocomotiveSimulator:
         now = datetime.now(timezone.utc)
         position = self._get_position()
 
-        # Build telemetry values
-        noise = lambda scale=1.0: random.gauss(0, scale)
+        # Build telemetry values (more stable - reduced noise)
+        noise = lambda scale=1.0: random.gauss(0, scale * 0.5)  # Halved noise
 
-        speed = max(0.0, self._speed + noise(0.5))
-        fuel_consumption = max(0.0, speed * 0.15 + noise(0.3)) if speed > 0 else 0.5
+        speed = max(0.0, self._speed + noise(0.3))
+        fuel_consumption = max(0.0, speed * 0.12 + noise(0.2)) if speed > 0 else 0.3
 
-        self._fuel_level = max(0, self._fuel_level - fuel_consumption * 0.001)
+        self._fuel_level = max(0, self._fuel_level - fuel_consumption * 0.0008)
 
-        pressure = 4.5 + noise(0.1) - (speed / 300)
-        temperature = 75 + speed * 0.15 + noise(0.5)
+        # More stable pressure and temperature (stay well within normal ranges)
+        pressure = 4.5 + noise(0.05) - (speed / 400)  # Less speed impact
+        temperature = 72 + speed * 0.12 + noise(0.3)  # Lower base, less speed impact
 
-        # Apply faults
+        # Apply faults (reduced severity)
         if "temperature" in self._fault_active:
-            temperature += random.uniform(15, 30)
+            temperature += random.uniform(12, 22)  # Less extreme (was 15-30)
         if "pressure" in self._fault_active:
-            pressure -= random.uniform(1.5, 2.5)
-            pressure = max(0.5, pressure)
+            pressure -= random.uniform(1.0, 1.8)  # Less extreme (was 1.5-2.5)
+            pressure = max(1.0, pressure)
 
         telemetry_dict = {
             "speed": round(speed, 1),
@@ -264,13 +265,16 @@ class LocomotiveSimulator:
         for p in list(self._fault_active):
             self._fault_active[p] -= 1
 
-        # Random injection (1% chance per tick per fault type)
-        fault_candidates = ["temperature", "pressure"]
-        for fc in fault_candidates:
-            if fc not in self._fault_active and random.random() < 0.01:
-                duration = random.randint(10, 60)
-                self._fault_active[fc] = duration
-                logger.info("Fault injected: %s for %d ticks", fc, duration)
+        # Random injection (0.2% chance per tick - much rarer than before)
+        # Only inject faults if none are currently active (avoid stacking)
+        if not self._fault_active:
+            fault_candidates = ["temperature", "pressure"]
+            for fc in fault_candidates:
+                if random.random() < 0.002:  # 0.2% chance (was 1%)
+                    duration = random.randint(8, 20)  # shorter duration (was 10-60)
+                    self._fault_active[fc] = duration
+                    logger.info("Fault injected: %s for %d ticks", fc, duration)
+                    break  # Only inject one fault at a time
 
     # ── Persistence ───────────────────────────────────────────
 

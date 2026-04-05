@@ -37,7 +37,7 @@ _RECOMMENDATIONS: dict[str, dict[str, str]] = {
 class AlertEngine:
     """Stateful alert detection with debouncing."""
 
-    def __init__(self, debounce_seconds: float = 30.0):
+    def __init__(self, debounce_seconds: float = 60.0):
         self._debounce_sec = debounce_seconds
         # last fire time per (param, severity)
         self._last_fired: dict[tuple[str, str], datetime] = {}

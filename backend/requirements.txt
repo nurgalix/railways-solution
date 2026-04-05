@@ -3,12 +3,14 @@ fastapi==0.128.0
 uvicorn==0.40.0
 pydantic==2.12.5
 pydantic-settings>=2.0.0
+python-multipart>=0.0.6
 
 # ── Database ────────────────────────────────────────────────
 sqlalchemy==2.0.46
 asyncpg==0.31.0
 psycopg2-binary==2.9.10
 aiosqlite==0.22.1
+alembic>=1.13.0
 
 # ── Auth ────────────────────────────────────────────────────
 python-jose[cryptography]>=3.3.0
